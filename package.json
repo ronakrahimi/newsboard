@@ -9,11 +9,9 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@prisma/client": "5.18.0",
     "next": "16.1.6",
     "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "rss-parser": "^3.13.0"
+    "react-dom": "19.2.3"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -21,7 +19,6 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
-    "prisma": "5.18.0",
     "typescript": "^5"
   }
 }

@@ -25,32 +25,51 @@ interface FeedContextType {
   activeFeedId: number | null | "all"; // null = initial, "all" = aggregate
   loading: boolean;
   addFeed: (url: string) => Promise<void>;
-  removeFeed: (id: number) => Promise<void>;
+  removeFeed: (id: number) => void;
   setActiveFeedId: (id: number | "all") => void;
-  refreshFeeds: () => Promise<void>;
+  refreshFeeds: () => void;
 }
 
 const FeedContext = createContext<FeedContextType | undefined>(undefined);
+
+const STORAGE_KEY = "newsboard_feeds";
+
+const DEFAULT_FEEDS: Feed[] = [
+    { id: 1, url: "https://feeds.npr.org/1001/rss.xml", name: "NPR News", category: "News" },
+];
 
 export function FeedProvider({ children }: { children: React.ReactNode }) {
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [activeFeedId, setActiveFeedId] = useState<number | "all">("all");
   const [loading, setLoading] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Fetch Feeds from DB
-  const refreshFeeds = useCallback(async () => {
-    try {
-      const res = await fetch("/api/feeds");
-      const data = await res.json();
-      setFeeds(data);
-    } catch (e) {
-      console.error("Failed to fetch feeds", e);
+  // Load Feeds from LocalStorage on Mount
+  useEffect(() => {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+        setFeeds(JSON.parse(saved));
+    } else {
+        setFeeds(DEFAULT_FEEDS);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_FEEDS));
     }
+    setIsInitialized(true);
   }, []);
 
-  // Fetch Articles based on activeFeedId
-  const refreshArticles = useCallback(async () => {
+  // Save Feeds to LocalStorage whenever they change
+  useEffect(() => {
+    if (isInitialized) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(feeds));
+    }
+  }, [feeds, isInitialized]);
+
+  const refreshFeeds = () => {
+      // No-op for now as state manages itself, but kept for interface compatibility
+  };
+
+  // Fetch Articles using RSS2JSON (Public CORS Proxy)
+  const fetchArticles = useCallback(async () => {
     if (feeds.length === 0) return;
     setLoading(true);
     setArticles([]);
@@ -63,17 +82,23 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     try {
       const articlePromises = feedsToFetch.map(async (feed) => {
         try {
-          const res = await fetch(`/api/proxy?url=${encodeURIComponent(feed.url)}`);
+          // Use RSS2JSON to bypass CORS
+          const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`);
           const data = await res.json();
-          // Add source to each article
+          
+          if (data.status !== 'ok') {
+              console.warn(`Failed to fetch ${feed.name}: ${data.message}`);
+              return [];
+          }
+
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           return (data.items || []).map((item: any) => ({
             title: item.title,
             link: item.link,
             pubDate: item.pubDate,
-            contentSnippet: item.contentSnippet,
+            contentSnippet: item.description || item.content, // RSS2JSON maps description
             content: item.content,
-            isoDate: item.isoDate,
+            isoDate: item.pubDate, // RSS2JSON doesn't give isoDate always, assume pubDate is usable
             source: feed.name,
           }));
         } catch (e) {
@@ -83,8 +108,9 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       });
 
       const results = await Promise.all(articlePromises);
-      const allArticles = results.flat().sort((a, b) => {
-        return new Date(b.isoDate || b.pubDate).getTime() - new Date(a.isoDate || a.pubDate).getTime();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const allArticles = results.flat().sort((a: any, b: any) => {
+        return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
       });
 
       setArticles(allArticles);
@@ -95,41 +121,39 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     }
   }, [feeds, activeFeedId]);
 
-  // Initial Load
-  useEffect(() => {
-    refreshFeeds();
-  }, [refreshFeeds]);
-
   // Update articles when feeds or active feed changes
   useEffect(() => {
-    refreshArticles();
-  }, [refreshArticles, feeds]);
+    if (isInitialized) {
+        fetchArticles();
+    }
+  }, [fetchArticles, isInitialized]); // Removed 'feeds' dependency to avoid loop if feeds change but id doesn't needed? No, feeds needed.
 
   const addFeed = async (url: string) => {
     try {
-        const res = await fetch("/api/feeds", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-        });
-        if (res.ok) {
-            await refreshFeeds();
+        // Validation via fetching
+        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+            const newFeed: Feed = {
+                id: Date.now(),
+                url: url,
+                name: data.feed.title || "New Feed",
+                category: "General"
+            };
+            setFeeds(prev => [...prev, newFeed]);
         } else {
-            alert("Failed to add feed. Check URL.");
+            alert("Invalid RSS Feed URL or Feed unreachable.");
         }
     } catch (e) {
         console.error("Error adding feed", e);
+        alert("Error validating feed.");
     }
   };
 
-  const removeFeed = async (id: number) => {
-      try {
-          await fetch(`/api/feeds?id=${id}`, { method: "DELETE" });
-          await refreshFeeds();
-          if (activeFeedId === id) setActiveFeedId("all");
-      } catch (e) {
-          console.error("Error deleting feed", e);
-      }
+  const removeFeed = (id: number) => {
+      setFeeds(prev => prev.filter(f => f.id !== id));
+      if (activeFeedId === id) setActiveFeedId("all");
   };
 
   return (
