@@ -33,10 +33,12 @@ interface FeedContextType {
 
 const FeedContext = createContext<FeedContextType | undefined>(undefined);
 
-const STORAGE_KEY = "newsboard_feeds";
+const STORAGE_KEY = "newsboard_feeds_v2";
 
 const DEFAULT_FEEDS: Feed[] = [
-    { id: 1, url: "https://feeds.npr.org/1001/rss.xml", name: "NPR News", category: "News" },
+    { id: 1, url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", name: "NYT > Top Stories", category: "News" },
+    { id: 2, url: "https://www.theguardian.com/world/rss", name: "The Guardian", category: "News" },
+    { id: 3, url: "https://feeds.arstechnica.com/arstechnica/index", name: "Ars Technica", category: "Tech" },
 ];
 
 export function FeedProvider({ children }: { children: React.ReactNode }) {
