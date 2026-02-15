@@ -83,11 +83,12 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
                 const data = await res.json();
                 if (data.status !== 'ok') throw new Error('rss2json returned error status');
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return (data.items || []).map((item: any) => ({
                     title: item.title ? decodeEntities(item.title) : "",
                     link: item.link,
                     pubDate: item.pubDate,
-                    contentSnippet: (item.description || item.content) ? decodeEntities(item.description || item.content) : "",
+                    contentSnippet: (item.description || item.content) ? stripHtml(decodeEntities(item.description || item.content)) : "",
                     content: item.content,
                     isoDate: item.pubDate,
                     source: data.feed.title ? decodeEntities(data.feed.title) : ""
@@ -143,6 +144,12 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Utility to strip HTML tags
+  const stripHtml = (html: string) => {
+     const doc = new DOMParser().parseFromString(html, 'text/html');
+     return doc.body.textContent || "";
+  };
+
   const parseXML = (xmlString: string) => {
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlString, "text/xml");
@@ -154,7 +161,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
           title: item.querySelector("title")?.textContent ? decodeEntities(item.querySelector("title")!.textContent!) : "",
           link: item.querySelector("link")?.textContent || "",
           pubDate: item.querySelector("pubDate")?.textContent || "",
-          contentSnippet: item.querySelector("description")?.textContent ? decodeEntities(item.querySelector("description")!.textContent!) : "",
+          contentSnippet: item.querySelector("description")?.textContent ? stripHtml(decodeEntities(item.querySelector("description")!.textContent!)) : "",
           content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || "",
           isoDate: item.querySelector("pubDate")?.textContent || "",
           source: feedTitle
