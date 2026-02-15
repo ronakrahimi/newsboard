@@ -16,14 +16,14 @@ function HomeContent() {
       <section className={styles.content}>
         {loading && (
           <div className={styles.center}>
-            <div className={styles.loader}>Loading...</div>
+            <div className={styles.loader}></div>
           </div>
         )}
 
         {!loading && articles.length === 0 && (
           <div className={styles.center}>
             {feeds.length === 0 ? (
-              <p>Welcome! Add an RSS feed to get started.</p>
+              <p>Welcome! Add an RSS feed in the sidebar to get started.</p>
             ) : (
               <p>No articles found. Try refreshing or adding more feeds.</p>
             )}
@@ -31,11 +31,9 @@ function HomeContent() {
         )}
 
         {!loading && articles.length > 0 && (
-          <div className="snap-y">
+          <div className={styles.grid}>
             {articles.map((article, index) => (
-              <div key={index} className={`snap-center ${styles.page}`}>
-                <NewsCard article={article} />
-              </div>
+              <NewsCard key={index} article={article} />
             ))}
           </div>
         )}

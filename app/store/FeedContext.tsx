@@ -68,7 +68,55 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       // No-op for now as state manages itself, but kept for interface compatibility
   };
 
-  // Fetch Articles using RSS2JSON (Public CORS Proxy)
+  // Robust Fetch Function
+  const fetchRSS = async (url: string) => {
+    // Strategy 1: RSS2JSON (Best format, strict CORS)
+    try {
+        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data.status === 'ok') {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            return (data.items || []).map((item: any) => ({
+                title: item.title,
+                link: item.link,
+                pubDate: item.pubDate,
+                contentSnippet: item.description || item.content,
+                content: item.content,
+                isoDate: item.pubDate,
+                source: data.feed.title
+            }));
+        }
+    } catch (e) {
+        console.warn(`RSS2JSON failed for ${url}, trying backup...`, e);
+    }
+
+    // Strategy 2: AllOrigins (Raw XML, needs parsing)
+    try {
+        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
+        const data = await res.json();
+        if (data.contents) {
+             const parser = new DOMParser();
+             const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+             const items = Array.from(xmlDoc.querySelectorAll("item"));
+             const feedTitle = xmlDoc.querySelector("channel > title")?.textContent || "Unknown Source";
+
+             return items.map(item => ({
+                 title: item.querySelector("title")?.textContent || "",
+                 link: item.querySelector("link")?.textContent || "",
+                 pubDate: item.querySelector("pubDate")?.textContent || "",
+                 contentSnippet: item.querySelector("description")?.textContent || "",
+                 content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || "",
+                 isoDate: item.querySelector("pubDate")?.textContent || "",
+                 source: feedTitle
+             }));
+        }
+    } catch (e) {
+        console.error(`AllOrigins failed for ${url}`, e);
+    }
+    
+    throw new Error("All proxies failed");
+  };
+
   const fetchArticles = useCallback(async () => {
     if (feeds.length === 0) return;
     setLoading(true);
@@ -79,75 +127,50 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         ? feeds
         : feeds.filter((f) => f.id === activeFeedId);
 
-    try {
-      const articlePromises = feedsToFetch.map(async (feed) => {
+    const articlePromises = feedsToFetch.map(async (feed) => {
         try {
-          // Use RSS2JSON to bypass CORS
-          const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(feed.url)}`);
-          const data = await res.json();
-          
-          if (data.status !== 'ok') {
-              console.warn(`Failed to fetch ${feed.name}: ${data.message}`);
-              return [];
-          }
-
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          return (data.items || []).map((item: any) => ({
-            title: item.title,
-            link: item.link,
-            pubDate: item.pubDate,
-            contentSnippet: item.description || item.content, // RSS2JSON maps description
-            content: item.content,
-            isoDate: item.pubDate, // RSS2JSON doesn't give isoDate always, assume pubDate is usable
-            source: feed.name,
-          }));
+            const items = await fetchRSS(feed.url);
+            return items.map((item: Article) => ({...item, source: feed.name}));
         } catch (e) {
-            console.error(`Failed to fetch RSS for ${feed.name}`, e);
+            console.error(`Failed to fetch ${feed.name}`, e);
             return [];
         }
-      });
+    });
 
-      const results = await Promise.all(articlePromises);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const allArticles = results.flat().sort((a: any, b: any) => {
+    const results = await Promise.all(articlePromises);
+    const allArticles = results.flat().sort((a, b) => {
         return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
-      });
+    });
 
-      setArticles(allArticles);
-    } catch (e) {
-      console.error("Failed to fetch articles", e);
-    } finally {
-      setLoading(false);
-    }
+    setArticles(allArticles);
+    setLoading(false);
   }, [feeds, activeFeedId]);
+
 
   // Update articles when feeds or active feed changes
   useEffect(() => {
     if (isInitialized) {
         fetchArticles();
     }
-  }, [fetchArticles, isInitialized]); // Removed 'feeds' dependency to avoid loop if feeds change but id doesn't needed? No, feeds needed.
+  }, [fetchArticles, isInitialized]); 
 
   const addFeed = async (url: string) => {
     try {
-        // Validation via fetching
-        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        
-        if (data.status === 'ok') {
-            const newFeed: Feed = {
+        const items = await fetchRSS(url);
+        if (items && items.length > 0) {
+             const newFeed: Feed = {
                 id: Date.now(),
                 url: url,
-                name: data.feed.title || "New Feed",
+                name: items[0].source || "New Feed",
                 category: "General"
             };
             setFeeds(prev => [...prev, newFeed]);
         } else {
-            alert("Invalid RSS Feed URL or Feed unreachable.");
+             alert("Could not fetch feed. Check URL.");
         }
     } catch (e) {
         console.error("Error adding feed", e);
-        alert("Error validating feed.");
+        alert("Invalid RSS Feed URL or Feed unreachable.");
     }
   };
 
