@@ -69,52 +69,79 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
   };
 
   // Robust Fetch Function
+  // Robust Fetch Function with Multiple Proxies
   const fetchRSS = async (url: string) => {
-    // Strategy 1: RSS2JSON (Best format, strict CORS)
-    try {
-        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        if (data.status === 'ok') {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            return (data.items || []).map((item: any) => ({
-                title: item.title,
-                link: item.link,
-                pubDate: item.pubDate,
-                contentSnippet: item.description || item.content,
-                content: item.content,
-                isoDate: item.pubDate,
-                source: data.feed.title
-            }));
+    const proxies = [
+        {
+            name: 'rss2json',
+            fetch: async (target: string) => {
+                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(target)}`);
+                if (!res.ok) throw new Error(`rss2json status: ${res.status}`);
+                const data = await res.json();
+                if (data.status !== 'ok') throw new Error('rss2json returned error status');
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                return (data.items || []).map((item: any) => ({
+                    title: item.title,
+                    link: item.link,
+                    pubDate: item.pubDate,
+                    contentSnippet: item.description || item.content,
+                    content: item.content,
+                    isoDate: item.pubDate,
+                    source: data.feed.title
+                }));
+            }
+        },
+        {
+            name: 'allorigins',
+            fetch: async (target: string) => {
+                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(target)}`);
+                if (!res.ok) throw new Error(`allorigins status: ${res.status}`);
+                const data = await res.json();
+                if (!data.contents) throw new Error('allorigins no content');
+                return parseXML(data.contents);
+            }
+        },
+        {
+            name: 'codetabs',
+            fetch: async (target: string) => {
+                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`);
+                if (!res.ok) throw new Error(`codetabs status: ${res.status}`);
+                const text = await res.text();
+                return parseXML(text);
+            }
         }
-    } catch (e) {
-        console.warn(`RSS2JSON failed for ${url}, trying backup...`, e);
+    ];
+
+    for (const proxy of proxies) {
+        try {
+            console.log(`Attempting fetch via ${proxy.name} for ${url}`);
+            const items = await proxy.fetch(url);
+            console.log(`Success via ${proxy.name}`);
+            return items;
+        } catch (e) {
+            console.warn(`Failed via ${proxy.name}:`, e);
+            // Continue to next proxy
+        }
     }
 
-    // Strategy 2: AllOrigins (Raw XML, needs parsing)
-    try {
-        const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(url)}`);
-        const data = await res.json();
-        if (data.contents) {
-             const parser = new DOMParser();
-             const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-             const items = Array.from(xmlDoc.querySelectorAll("item"));
-             const feedTitle = xmlDoc.querySelector("channel > title")?.textContent || "Unknown Source";
+    throw new Error("All proxies failed to fetch feed.");
+  };
 
-             return items.map(item => ({
-                 title: item.querySelector("title")?.textContent || "",
-                 link: item.querySelector("link")?.textContent || "",
-                 pubDate: item.querySelector("pubDate")?.textContent || "",
-                 contentSnippet: item.querySelector("description")?.textContent || "",
-                 content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || "",
-                 isoDate: item.querySelector("pubDate")?.textContent || "",
-                 source: feedTitle
-             }));
-        }
-    } catch (e) {
-        console.error(`AllOrigins failed for ${url}`, e);
-    }
-    
-    throw new Error("All proxies failed");
+  const parseXML = (xmlString: string) => {
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
+      const items = Array.from(xmlDoc.querySelectorAll("item"));
+      const feedTitle = xmlDoc.querySelector("channel > title")?.textContent || "Unknown Source";
+
+      return items.map(item => ({
+          title: item.querySelector("title")?.textContent || "",
+          link: item.querySelector("link")?.textContent || "",
+          pubDate: item.querySelector("pubDate")?.textContent || "",
+          contentSnippet: item.querySelector("description")?.textContent || "",
+          content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || "",
+          isoDate: item.querySelector("pubDate")?.textContent || "",
+          source: feedTitle
+      }));
   };
 
   const fetchArticles = useCallback(async () => {
