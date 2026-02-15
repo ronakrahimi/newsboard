@@ -1,6 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import he from 'he';
 
 type Feed = {
   id: number;
@@ -81,13 +82,13 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
                 if (data.status !== 'ok') throw new Error('rss2json returned error status');
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 return (data.items || []).map((item: any) => ({
-                    title: item.title,
+                    title: item.title ? decodeEntities(item.title) : "",
                     link: item.link,
                     pubDate: item.pubDate,
-                    contentSnippet: item.description || item.content,
+                    contentSnippet: (item.description || item.content) ? decodeEntities(item.description || item.content) : "",
                     content: item.content,
                     isoDate: item.pubDate,
-                    source: data.feed.title
+                    source: data.feed.title ? decodeEntities(data.feed.title) : ""
                 }));
             }
         },
@@ -127,17 +128,31 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     throw new Error("All proxies failed to fetch feed.");
   };
 
+  // Utility to decode HTML entities
+  const decodeEntities = (text: string) => {
+    try {
+        const decoded = he.decode(text);
+        // Sometimes entities are double-encoded, or he.decode misses some edge cases with uppercase
+        // A second pass or custom replacement for specific issues like &GT; might be needed if he fails
+        return decoded.replace(/&GT;/g, '>'); 
+    } catch (e) {
+        console.warn("Entity decoding failed", e);
+        return text;
+    }
+  };
+
   const parseXML = (xmlString: string) => {
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(xmlString, "text/xml");
       const items = Array.from(xmlDoc.querySelectorAll("item"));
-      const feedTitle = xmlDoc.querySelector("channel > title")?.textContent || "Unknown Source";
+      const titleNode = xmlDoc.querySelector("channel > title");
+      const feedTitle = titleNode?.textContent ? decodeEntities(titleNode.textContent) : "Unknown Source";
 
       return items.map(item => ({
-          title: item.querySelector("title")?.textContent || "",
+          title: item.querySelector("title")?.textContent ? decodeEntities(item.querySelector("title")!.textContent!) : "",
           link: item.querySelector("link")?.textContent || "",
           pubDate: item.querySelector("pubDate")?.textContent || "",
-          contentSnippet: item.querySelector("description")?.textContent || "",
+          contentSnippet: item.querySelector("description")?.textContent ? decodeEntities(item.querySelector("description")!.textContent!) : "",
           content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || "",
           isoDate: item.querySelector("pubDate")?.textContent || "",
           source: feedTitle

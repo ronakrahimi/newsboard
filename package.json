@@ -10,11 +10,13 @@
     "deploy": "gh-pages -d out --dotfiles"
   },
   "dependencies": {
+    "he": "^1.2.0",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@types/he": "^1.2.3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
