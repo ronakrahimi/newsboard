@@ -25,7 +25,7 @@ interface FeedContextType {
   articles: Article[];
   activeFeedId: number | null | "all"; // null = initial, "all" = aggregate
   loading: boolean;
-  addFeed: (url: string) => Promise<void>;
+  addFeed: (url: string, category?: string) => Promise<void>;
   removeFeed: (id: number) => void;
   setActiveFeedId: (id: number | "all") => void;
   refreshFeeds: () => void;
@@ -33,12 +33,39 @@ interface FeedContextType {
 
 const FeedContext = createContext<FeedContextType | undefined>(undefined);
 
-const STORAGE_KEY = "newsboard_feeds_v2";
+const STORAGE_KEY = "newsboard_feeds_v3";
 
 const DEFAULT_FEEDS: Feed[] = [
+    // News
     { id: 1, url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", name: "NYT > Top Stories", category: "News" },
     { id: 2, url: "https://www.theguardian.com/world/rss", name: "The Guardian", category: "News" },
-    { id: 3, url: "https://feeds.arstechnica.com/arstechnica/index", name: "Ars Technica", category: "Tech" },
+    { id: 3, url: "https://feeds.bbci.co.uk/news/rss.xml", name: "BBC News", category: "News" },
+    { id: 4, url: "https://www.reutersagency.com/feed/", name: "Reuters", category: "News" },
+    
+    // Tech
+    { id: 10, url: "https://feeds.arstechnica.com/arstechnica/index", name: "Ars Technica", category: "Tech" },
+    { id: 11, url: "https://www.theverge.com/rss/index.xml", name: "The Verge", category: "Tech" },
+    { id: 12, url: "https://techcrunch.com/feed/", name: "TechCrunch", category: "Tech" },
+    { id: 13, url: "https://www.wired.com/feed/rss", name: "Wired", category: "Tech" },
+
+    // Entertainment
+    { id: 20, url: "https://variety.com/feed/", name: "Variety", category: "Entertainment" },
+    { id: 21, url: "https://deadline.com/feed/", name: "Deadline", category: "Entertainment" },
+    { id: 22, url: "https://www.hollywoodreporter.com/feed/", name: "Hollywood Reporter", category: "Entertainment" },
+
+    // Finance
+    { id: 30, url: "https://feeds.a.dj.com/rss/RSSMarketsMain.xml", name: "WSJ Markets", category: "Finance" },
+    { id: 31, url: "https://www.ft.com/?format=rss", name: "Financial Times", category: "Finance" },
+    { id: 32, url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?id=10000664", name: "CNBC Finance", category: "Finance" },
+
+    // AI
+    { id: 40, url: "https://openai.com/days/rss.xml", name: "OpenAI", category: "AI" }, /* Note: OpenAI feed URL often changes, checking validity */
+    { id: 41, url: "https://the-decoder.com/feed/", name: "The Decoder", category: "AI" },
+    { id: 42, url: "https://deepmind.google/blog/feed/", name: "Google DeepMind", category: "AI" },
+    
+    // Science & Nature
+    { id: 50, url: "https://www.nationalgeographic.com/arc/outboundfeeds/rss/", name: "National Geographic", category: "Science" },
+    { id: 51, url: "https://www.nature.com/nature.rss", name: "Nature", category: "Science" },
 ];
 
 export function FeedProvider({ children }: { children: React.ReactNode }) {
@@ -205,7 +232,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     }
   }, [fetchArticles, isInitialized]); 
 
-  const addFeed = async (url: string) => {
+  const addFeed = async (url: string, category: string = "General") => {
     try {
         const items = await fetchRSS(url);
         if (items && items.length > 0) {
@@ -213,7 +240,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
                 id: Date.now(),
                 url: url,
                 name: items[0].source || "New Feed",
-                category: "General"
+                category: category
             };
             setFeeds(prev => [...prev, newFeed]);
         } else {
