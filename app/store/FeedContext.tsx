@@ -25,9 +25,11 @@ interface FeedContextType {
   articles: Article[];
   activeFeedId: number | null | "all"; // null = initial, "all" = aggregate
   loading: boolean;
+  selectedArticle: Article | null;
   addFeed: (url: string, category?: string) => Promise<void>;
   removeFeed: (id: number) => void;
   setActiveFeedId: (id: number | "all") => void;
+  setSelectedArticle: (article: Article | null) => void;
   refreshFeeds: () => void;
 }
 
@@ -72,6 +74,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
   const [feeds, setFeeds] = useState<Feed[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [activeFeedId, setActiveFeedId] = useState<number | "all">("all");
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
@@ -264,9 +267,11 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         articles,
         activeFeedId,
         loading,
+        selectedArticle,
         addFeed,
         removeFeed,
         setActiveFeedId,
+        setSelectedArticle,
         refreshFeeds,
       }}
     >

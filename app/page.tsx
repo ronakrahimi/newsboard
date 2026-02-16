@@ -4,6 +4,7 @@ import React from 'react';
 import { FeedProvider, useFeed } from '@/app/store/FeedContext';
 import FeedSelector from '@/app/components/FeedSelector';
 import NewsCard from '@/app/components/NewsCard';
+import ArticleReader from '@/app/components/ArticleReader';
 import styles from './page.module.css';
 
 function HomeContent() {
@@ -12,6 +13,7 @@ function HomeContent() {
   return (
     <main className={styles.main}>
       <FeedSelector />
+      <ArticleReader />
       
       <section className={styles.content}>
         {loading && (
