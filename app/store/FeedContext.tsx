@@ -33,7 +33,7 @@ interface FeedContextType {
 
 const FeedContext = createContext<FeedContextType | undefined>(undefined);
 
-const STORAGE_KEY = "newsboard_feeds_v3";
+const STORAGE_KEY = "newsboard_feeds_v4";
 
 const DEFAULT_FEEDS: Feed[] = [
     // News
@@ -59,7 +59,7 @@ const DEFAULT_FEEDS: Feed[] = [
     { id: 32, url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?id=10000664", name: "CNBC Finance", category: "Finance" },
 
     // AI
-    { id: 40, url: "https://openai.com/days/rss.xml", name: "OpenAI", category: "AI" }, /* Note: OpenAI feed URL often changes, checking validity */
+    { id: 40, url: "https://openai.com/news/rss.xml", name: "OpenAI", category: "AI" }, /* Note: OpenAI feed URL often changes, checking validity */
     { id: 41, url: "https://the-decoder.com/feed/", name: "The Decoder", category: "AI" },
     { id: 42, url: "https://deepmind.google/blog/feed/", name: "Google DeepMind", category: "AI" },
     
