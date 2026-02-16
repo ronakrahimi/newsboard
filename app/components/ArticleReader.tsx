@@ -1,5 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { useFeed } from '@/app/store/FeedContext';
+import DOMPurify from 'isomorphic-dompurify';
 import styles from './ArticleReader.module.css';
 
 const ArticleReader: React.FC = () => {
@@ -71,7 +72,12 @@ const ArticleReader: React.FC = () => {
                If we had full content, we'd render it here.
                For now, we display the snippet as a preview.
             */}
-            <p>{selectedArticle.contentSnippet || selectedArticle.content || "No preview available."}</p>
+            <div 
+              className={styles.articleBody}
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(selectedArticle.content || selectedArticle.contentSnippet || "No preview available.") 
+              }} 
+            />
           </div>
         </div>
 
@@ -82,7 +88,7 @@ const ArticleReader: React.FC = () => {
             rel="noopener noreferrer"
             className={styles.readFullBtn}
           >
-            Read Full Story ↗
+            Open on Website (External) ↗
           </a>
         </div>
       </div>
