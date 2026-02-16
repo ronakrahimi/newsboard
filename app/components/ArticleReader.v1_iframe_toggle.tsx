@@ -1,16 +1,11 @@
-import React, { useEffect, useState, useRef } from 'react';
-import styles from './ArticleReader.module.css';
+import React, { useEffect, useRef } from 'react';
 import { useFeed } from '@/app/store/FeedContext';
 import DOMPurify from 'isomorphic-dompurify';
+import styles from './ArticleReader.module.css';
 
 const ArticleReader: React.FC = () => {
   const { selectedArticle, setSelectedArticle } = useFeed();
   const modalRef = useRef<HTMLDivElement>(null);
-  
-  // State for Smart Reader content
-  const [readerContent, setReaderContent] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   // Close on Escape key
   useEffect(() => {
@@ -30,33 +25,12 @@ const ArticleReader: React.FC = () => {
     }
   }, [selectedArticle]);
 
-  // Fetch content when article opens
-  useEffect(() => {
-    if (selectedArticle) {
-      setIsLoading(true);
-      setError(null);
-      setReaderContent(null);
+  const [viewMode, setViewMode] = React.useState<'text' | 'web'>('text');
 
-      // Fetch from our new API
-      fetch(`/api/read?url=${encodeURIComponent(selectedArticle.link)}`)
-        .then(res => {
-            if (!res.ok) throw new Error('Failed to load article');
-            return res.json();
-        })
-        .then(data => {
-            if (data.content) {
-                setReaderContent(data.content);
-            } else {
-                throw new Error('No content found');
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            setError('Could not load smart reader view. Showing summary instead.');
-        })
-        .finally(() => {
-            setIsLoading(false);
-        });
+  // Reset view mode when opening a new article
+  React.useEffect(() => {
+    if (selectedArticle) {
+      setViewMode('text');
     }
   }, [selectedArticle]);
 
@@ -104,28 +78,43 @@ const ArticleReader: React.FC = () => {
           <span className={styles.meta}>
             {formatDate(selectedArticle.pubDate)}
           </span>
+
+          <div className={styles.viewControls}>
+            <button 
+              className={`${styles.viewToggle} ${viewMode === 'text' ? styles.active : ''}`}
+              onClick={() => setViewMode('text')}
+            >
+              Rx Reader View
+            </button>
+            <button 
+              className={`${styles.viewToggle} ${viewMode === 'web' ? styles.active : ''}`}
+              onClick={() => setViewMode('web')}
+            >
+              Web View
+            </button>
+          </div>
           
           <div className={styles.body}>
-            {isLoading && (
-                <div style={{ textAlign: 'center', padding: '40px', color: '#666' }}>
-                    <p>Loading Smart Reader view...</p>
-                </div>
-            )}
-
-            {!isLoading && (
-                <div 
-                  className={styles.articleBody}
-                  dangerouslySetInnerHTML={{ 
-                    // Prefer fetched content, fallback to snippet if error/empty
-                    __html: DOMPurify.sanitize(readerContent || selectedArticle.content || selectedArticle.contentSnippet || "No preview available.") 
-                  }} 
+            {viewMode === 'text' ? (
+              <div 
+                className={styles.articleBody}
+                dangerouslySetInnerHTML={{ 
+                  __html: DOMPurify.sanitize(selectedArticle.content || selectedArticle.contentSnippet || "No preview available.") 
+                }} 
+              />
+            ) : (
+              <div className={styles.iframeContainer}>
+                 <p style={{fontSize: '0.9rem', color: '#666', marginBottom: '10px', textAlign: 'center'}}>
+                    Note: Some sites (like NYT, Hollywood Reporter) block embedding. If screens are gray, use the external link.
+                 </p>
+                <iframe 
+                  src={selectedArticle.link} 
+                  className={styles.iframe}
+                  title="Article Content"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  referrerPolicy="no-referrer"
                 />
-            )}
-            
-            {error && (
-                <p style={{ fontSize: '0.8rem', color: '#888', marginTop: '20px', borderTop: '1px solid #eee', paddingTop: '10px' }}>
-                    {error} Using RSS fallback.
-                </p>
+              </div>
             )}
           </div>
         </div>

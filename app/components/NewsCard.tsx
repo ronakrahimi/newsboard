@@ -25,11 +25,11 @@ const NewsCard: React.FC<NewsCardProps> = ({ article }) => {
   });
 
   const handleClick = (e: React.MouseEvent) => {
-      // Allow opening in new tab if cmd/ctrl clicked
-      if (e.metaKey || e.ctrlKey) return;
-      
-      e.preventDefault();
-      setSelectedArticle(article);
+    // Allow opening in new tab if cmd/ctrl clicked
+    if (e.metaKey || e.ctrlKey) return;
+    
+    e.preventDefault();
+    setSelectedArticle(article);
   };
 
   return (
