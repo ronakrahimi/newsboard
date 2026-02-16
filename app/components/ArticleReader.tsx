@@ -67,11 +67,6 @@ const ArticleReader: React.FC = () => {
           </span>
           
           <div className={styles.body}>
-            {/* 
-               We only have contentSnippet usually. 
-               If we had full content, we'd render it here.
-               For now, we display the snippet as a preview.
-            */}
             <div 
               className={styles.articleBody}
               dangerouslySetInnerHTML={{ 
@@ -79,17 +74,6 @@ const ArticleReader: React.FC = () => {
               }} 
             />
           </div>
-        </div>
-
-        <div className={styles.actions}>
-          <a 
-            href={selectedArticle.link} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className={styles.readFullBtn}
-          >
-            Open on Website (External) ↗
-          </a>
         </div>
       </div>
     </div>

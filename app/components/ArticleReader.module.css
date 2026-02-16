@@ -100,7 +100,7 @@
   /* No special styles for container, leaving layout to articleBody */
 }
 
-/* Injected Article Body Styles */
+/* Cleaned up CSS - removed unused toggle/iframe styles */
 .articleBody {
   font-family: var(--font-inter);
   font-size: 1.1rem;
