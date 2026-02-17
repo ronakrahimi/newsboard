@@ -35,18 +35,19 @@ interface FeedContextType {
 
 const FeedContext = createContext<FeedContextType | undefined>(undefined);
 
-const STORAGE_KEY = "newsboard_feeds_v5";
+const STORAGE_KEY = "newsboard_feeds_v9";
 
 const DEFAULT_FEEDS: Feed[] = [
     // News
     { id: 101, url: "https://feeds.bbci.co.uk/news/rss.xml", name: "BBC News", category: "News" },
     { id: 102, url: "https://rss.nytimes.com/services/xml/rss/nyt/HomePage.xml", name: "NY Times", category: "News" },
-    { id: 103, url: "https://www.reutersagency.com/feed/", name: "Reuters", category: "News" },
+    { id: 103, url: 'https://news.google.com/rss/search?q=site:reuters.com', name: 'Reuters', category: 'News' },
+    { id: 104, url: 'https://news.google.com/rss/search?q=site:apnews.com', name: 'Associated Press', category: 'News' },
     { id: 105, url: "https://feeds.a.dj.com/rss/RSSWorldNews.xml", name: "Wall Street Journal", category: "News" },
     { id: 106, url: "https://feeds.npr.org/1001/rss.xml", name: "NPR", category: "News" },
     { id: 107, url: "https://www.theguardian.com/world/rss", name: "The Guardian", category: "News" },
     { id: 108, url: "https://www.aljazeera.com/xml/rss/all.xml", name: "Al Jazeera", category: "News" },
-    { id: 109, url: "https://search.cnbc.com/rs/search/combinedcms/view.xml?id=100003114", name: "CNBC", category: "News" },
+    { id: 109, url: "https://www.cnbc.com/id/100003114/device/rss/rss.html", name: "CNBC", category: "News" },
     
     // Tech
     { id: 201, url: "https://techcrunch.com/feed/", name: "TechCrunch", category: "Tech" },
@@ -79,7 +80,6 @@ const DEFAULT_FEEDS: Feed[] = [
     { id: 404, url: "https://feeds.bloomberg.com/markets/news.rss", name: "Bloomberg", category: "Finance" },
     { id: 405, url: "https://www.cnbc.com/id/10000664/device/rss/rss.html", name: "CNBC Finance", category: "Finance" },
     { id: 406, url: "https://www.economist.com/latest/rss.xml", name: "The Economist", category: "Finance" },
-    { id: 407, url: "http://feeds.reuters.com/reuters/businessNews", name: "Reuters Business", category: "Finance" },
     { id: 408, url: "https://www.forbes.com/business/feed/", name: "Forbes Business", category: "Finance" },
     { id: 409, url: "https://services.investors.com/rssfeeds.aspx", name: "Investor's Business Daily", category: "Finance" },
     { id: 410, url: "https://seekingalpha.com/market_currents.xml", name: "Seeking Alpha", category: "Finance" },
@@ -88,20 +88,18 @@ const DEFAULT_FEEDS: Feed[] = [
     { id: 501, url: "https://openai.com/news/rss.xml", name: "OpenAI Blog", category: "AI" },
     { id: 502, url: "https://the-decoder.com/feed/", name: "The Decoder", category: "AI" },
     { id: 503, url: "https://deepmind.google/blog/feed/", name: "Google DeepMind", category: "AI" },
-    { id: 504, url: "https://tldr.tech/ai/rss", name: "TLDR AI", category: "AI" },
     { id: 505, url: "https://www.technologyreview.com/topic/artificial-intelligence/feed/", name: "MIT Tech Review (AI)", category: "AI" },
     { id: 506, url: "https://huggingface.co/blog/feed.xml", name: "Hugging Face Blog", category: "AI" },
     { id: 507, url: "https://www.bensbites.com/feed", name: "Ben's Bites", category: "AI" },
     { id: 508, url: "https://feeds.arstechnica.com/arstechnica/technology-lab", name: "Ars Technica (AI)", category: "AI" },
     { id: 509, url: "https://synthedia.substack.com/feed", name: "Synthedia", category: "AI" },
-    { id: 510, url: "https://www.therundown.ai/feed", name: "The Rundown AI", category: "AI" },
+    { id: 510, url: "https://rss.beehiiv.com/feeds/480eabdad1.xml", name: "The Rundown AI", category: "AI" },
 
     // Nature
-    { id: 601, url: "https://www.nationalgeographic.com/arc/outboundfeeds/rss/", name: "National Geographic", category: "Nature" },
+    { id: 601, url: "https://news.google.com/rss/search?q=site:nationalgeographic.com", name: "National Geographic", category: "Nature" },
     { id: 602, url: "https://news.mongabay.com/feed/", name: "Mongabay", category: "Nature" },
     { id: 603, url: "https://grist.org/feed/", name: "Grist", category: "Nature" },
-    { id: 604, url: "https://e360.yale.edu/feed", name: "Yale E360", category: "Nature" },
-    { id: 605, url: "https://www.treehugger.com/rss/", name: "Treehugger", category: "Nature" },
+    { id: 605, url: "https://news.google.com/rss/search?q=site:treehugger.com", name: "Treehugger", category: "Nature" },
     { id: 606, url: "https://www.theguardian.com/environment/rss", name: "The Guardian (Env)", category: "Nature" },
     { id: 607, url: "https://www.nature.com/nature.rss", name: "Nature News", category: "Nature" },
     { id: 608, url: "https://www.conservation.org/blog/rss", name: "Conservation Intl", category: "Nature" },
