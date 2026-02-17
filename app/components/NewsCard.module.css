@@ -82,9 +82,17 @@
 
 @media (max-width: 768px) {
   .card {
-    padding: 1.25rem;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05); /* Softer shadow */
   }
   .title {
-    font-size: 1.25rem;
+    font-size: 1.3rem;
+    line-height: 1.3;
+  }
+  .snippet {
+    font-size: 0.95rem;
+    -webkit-line-clamp: 4; /* Show a bit more text if title is smaller */
+    line-clamp: 4;
   }
 }

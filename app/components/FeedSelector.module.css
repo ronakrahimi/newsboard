@@ -15,6 +15,18 @@
   transition: transform 0.3s ease;
 }
 
+/* Mobile Header - Hidden by default on desktop */
+.mobileHeader {
+    display: none;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .mobileHeader {
+    display: flex !important;
+  }
+}
+
 .heading {
   font-size: 0.8rem;
   text-transform: uppercase;
@@ -126,47 +138,89 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .sidebar {
-    width: 100%;
-    height: auto;
-    position: relative;
-    border-right: none;
-    border-bottom: 1px solid var(--sidebar-border);
-    padding: 1rem;
-    padding-bottom: 0.5rem;
+    width: 280px;
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    border-right: 1px solid var(--sidebar-border);
+    background: var(--sidebar-bg);
+    z-index: 1000;
+    padding-top: 4rem; /* Space for close button if needed, or just standard padding */
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: none;
   }
 
+  .sidebar.open {
+    transform: translateX(0);
+    box-shadow: 100px 0 100px rgba(0,0,0,0.2); /* Shadow on the content side */
+  }
+
+  .mobileHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+    padding: 0 1rem;
+    background: var(--background);
+    border-bottom: 1px solid var(--sidebar-border);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+  }
+
+  .brand {
+    font-family: var(--font-playfair);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+
+  .hamburger {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    padding: 0.5rem;
+  }
+
+  .overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 950;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    backdrop-filter: blur(2px);
+  }
+
+  .overlay.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  /* Reset desktop-specifics that we don't want */
   .list {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    /* Hide category grouping on mobile for simplicity, or adapt it */
+    flex-direction: column;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-bottom: 2rem;
   }
   
-  .categoryGroup {
-    display: contents; /* Flatten structure on mobile if needed, or keep simpler */
-  }
-
   .categoryHeader {
-    display: none; /* Simplify mobile: just show all feeds */
-  }
-
-  .categoryFeeds {
-    display: contents;
-  }
-
-  .feedRow {
-    flex-shrink: 0;
+    display: flex; /* Restore category headers */
   }
 
   .heading, .form {
-    display: none; /* Simplify mobile view */
-  }
-  
-  .item {
-    font-size: 0.9rem;
-    padding: 0.5rem 1rem;
-    background: rgba(0,0,0,0.05);
-    white-space: nowrap;
+    display: flex; /* Restore these */
   }
 }
 

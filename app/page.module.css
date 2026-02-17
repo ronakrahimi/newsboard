@@ -64,6 +64,7 @@
   .content {
     margin-left: 0;
     padding: 1rem;
+    padding-top: 80px; /* Space for fixed mobile header (60px) + gap */
   }
 
   .grid {
