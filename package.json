@@ -15,6 +15,7 @@
     "he": "^1.2.0",
     "isomorphic-dompurify": "^3.0.0-rc.2",
     "jsdom": "^28.1.0",
+    "linkedom": "^0.18.12",
     "next": "16.1.6",
     "react": "19.2.3",
     "react-dom": "19.2.3"
@@ -29,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "gh-pages": "^6.3.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^50.18.0"
   }
 }

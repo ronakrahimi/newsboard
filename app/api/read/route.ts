@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
-import jsdom from 'jsdom';
-const { JSDOM } = jsdom;
+import { parseHTML } from 'linkedom';
 import { Readability } from '@mozilla/readability';
 import https from 'https';
 
-// Force Node.js runtime because JSDOM relies on Node.js APIs
+// Force Node.js runtime because axios and Readability work best there
 export const runtime = 'nodejs';
 
 export async function GET(request: NextRequest) {
@@ -33,15 +32,11 @@ export async function GET(request: NextRequest) {
 
     const html = response.data;
 
-    // 2. Parse HTML with JSDOM
-    const virtualConsole = new jsdom.VirtualConsole();
-    virtualConsole.on("error", () => { /* skip regex errors */ });
-    
-    // @ts-ignore
-    const doc = new JSDOM(html, { url, virtualConsole });
+    // 2. Parse HTML with Linkedom (lighter and more stable than JSDOM)
+    const { window } = parseHTML(html);
     
     // 3. Extract content with Readability
-    const reader = new Readability(doc.window.document);
+    const reader = new Readability(window.document);
     const article = reader.parse();
 
     if (!article) {
@@ -60,14 +55,13 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error: any) {
-    console.error('Smart Reader Error:', error.message);
-    if (error.response) {
-      console.error('Axios Status:', error.response.status);
-    }
-
+    console.error('Smart Reader Error:', error);
     return NextResponse.json({ 
       error: 'Failed to fetch article', 
-      details: error.message 
+      details: error.message,
+      stack: error.stack,
+      upstreamStatus: error.response?.status,
+      upstreamStatusText: error.response?.statusText
     }, { status: 500 });
   }
 }

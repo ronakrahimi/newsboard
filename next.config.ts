@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  serverExternalPackages: ['jsdom', 'canvas', 'bufferutil', 'utf-8-validate'],
 };
 
 export default nextConfig;
