@@ -138,107 +138,30 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       // No-op for now as state manages itself, but kept for interface compatibility
   };
 
-  // Robust Fetch Function
-  // Robust Fetch Function with Multiple Proxies
+  // Server-side RSS Fetch Function
   const fetchRSS = async (url: string) => {
-    const proxies = [
-        {
-            name: 'rss2json',
-            fetch: async (target: string) => {
-                const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(target)}`);
-                if (!res.ok) throw new Error(`rss2json status: ${res.status}`);
-                const data = await res.json();
-                if (data.status !== 'ok') throw new Error('rss2json returned error status');
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                return (data.items || []).map((item: any) => ({
-                    title: item.title ? decodeEntities(item.title) : "",
-                    link: item.link,
-                    pubDate: item.pubDate,
-                    contentSnippet: (item.description || item.content) ? stripHtml(decodeEntities(item.description || item.content)) : "",
-                    content: item.content,
-                    isoDate: item.pubDate,
-                    source: data.feed.title ? decodeEntities(data.feed.title) : ""
-                }));
-            }
-        },
-        {
-            name: 'allorigins',
-            fetch: async (target: string) => {
-                const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(target)}`);
-                if (!res.ok) throw new Error(`allorigins status: ${res.status}`);
-                const data = await res.json();
-                if (!data.contents) throw new Error('allorigins no content');
-                return parseXML(data.contents);
-            }
-        },
-        {
-            name: 'codetabs',
-            fetch: async (target: string) => {
-                const res = await fetch(`https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(target)}`);
-                if (!res.ok) throw new Error(`codetabs status: ${res.status}`);
-                const text = await res.text();
-                return parseXML(text);
-            }
-        }
-    ];
-
-    for (const proxy of proxies) {
-        try {
-            console.log(`Attempting fetch via ${proxy.name} for ${url}`);
-            const items = await proxy.fetch(url);
-            console.log(`Success via ${proxy.name}`);
-            return items;
-        } catch (e) {
-            console.warn(`Failed via ${proxy.name}:`, e);
-            // Continue to next proxy
-        }
-    }
-
-    throw new Error("All proxies failed to fetch feed.");
-  };
-
-  // Utility to decode HTML entities
-  const decodeEntities = (text: string) => {
     try {
-        const decoded = he.decode(text);
-        // Sometimes entities are double-encoded, or he.decode misses some edge cases with uppercase
-        // A second pass or custom replacement for specific issues like &GT; might be needed if he fails
-        return decoded.replace(/&GT;/g, '>'); 
-    } catch (e) {
-        console.warn("Entity decoding failed", e);
-        return text;
+        console.log(`Fetching via server API for ${url}`);
+        const res = await fetch(`/api/feed?url=${encodeURIComponent(url)}`);
+        
+        if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            throw new Error(errorData.error || `Server error: ${res.status}`);
+        }
+
+        const data = await res.json();
+        return data.items || [];
+    } catch (e: any) {
+        console.error(`Failed to fetch feed ${url}:`, e);
+        throw e;
     }
-  };
-
-  // Utility to strip HTML tags
-  const stripHtml = (html: string) => {
-     const doc = new DOMParser().parseFromString(html, 'text/html');
-     return doc.body.textContent || "";
-  };
-
-  const parseXML = (xmlString: string) => {
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlString, "text/xml");
-      const items = Array.from(xmlDoc.querySelectorAll("item"));
-      const titleNode = xmlDoc.querySelector("channel > title");
-      const feedTitle = titleNode?.textContent ? decodeEntities(titleNode.textContent) : "Unknown Source";
-
-      return items.map(item => ({
-          title: item.querySelector("title")?.textContent ? decodeEntities(item.querySelector("title")!.textContent!) : "",
-          link: item.querySelector("link")?.textContent || "",
-          pubDate: item.querySelector("pubDate")?.textContent || "",
-          contentSnippet: item.querySelector("description")?.textContent ? stripHtml(decodeEntities(item.querySelector("description")!.textContent!)) : "",
-          content: item.querySelector("content\\:encoded")?.textContent || item.querySelector("description")?.textContent || "",
-          isoDate: item.querySelector("pubDate")?.textContent || "",
-          source: feedTitle
-      }));
   };
 
   const fetchArticles = useCallback(async () => {
     if (feeds.length === 0) return;
     setLoading(true);
-    setArticles([]);
+    // Don't clear articles immediately to avoid flash of content
+    // setArticles([]); 
 
     const feedsToFetch =
       activeFeedId === "all"
@@ -248,7 +171,15 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     const articlePromises = feedsToFetch.map(async (feed) => {
         try {
             const items = await fetchRSS(feed.url);
-            return items.map((item: Article) => ({...item, source: feed.name}));
+            return items.map((item: any) => ({
+                title: item.title,
+                link: item.link,
+                pubDate: item.pubDate,
+                contentSnippet: item.contentSnippet,
+                content: item.content,
+                source: feed.name,
+                isoDate: item.isoDate
+            }));
         } catch (e) {
             console.error(`Failed to fetch ${feed.name}`, e);
             return [];
@@ -257,7 +188,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
 
     const results = await Promise.all(articlePromises);
     const allArticles = results.flat().sort((a, b) => {
-        return new Date(b.pubDate).getTime() - new Date(a.pubDate).getTime();
+        return new Date(b.pubDate || b.isoDate || 0).getTime() - new Date(a.pubDate || a.isoDate || 0).getTime();
     });
 
     setArticles(allArticles);
